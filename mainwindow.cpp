@@ -73,7 +73,6 @@ void MainWindow::onBlurFinished()
     ui->labelOutput->setPixmap(QPixmap::fromImage(outputImage));
 }
 
-// ---------- Gaussian blur QImage-re ----------
 QImage MainWindow::gaussianBlur(const QImage& img, float sigma, int threads)
 {
     QImage src = img.convertToFormat(QImage::Format_RGBA8888);
@@ -85,14 +84,11 @@ QImage MainWindow::gaussianBlur(const QImage& img, float sigma, int threads)
     std::vector<float> temp(w * h * 4);
     std::vector<uchar> out(w * h * 4);
 
-    // kernel
     auto kernel = makeKernel(sigma);
     int radius = kernel.size() / 2;
 
-    // eredmenyek tárolása szálanként
     threadTimes.resize(threads);
 
-    // ----- Horizontal pass -----
     auto horizontal = [&](int startY, int endY) {
         for (int y = startY; y < endY; ++y) {
             for (int x = 0; x < w; ++x) {
@@ -109,7 +105,6 @@ QImage MainWindow::gaussianBlur(const QImage& img, float sigma, int threads)
         }
     };
 
-    // ----- Vertical pass -----
     auto vertical = [&](int startY, int endY) {
         for (int y = startY; y < endY; ++y) {
             for (int x = 0; x < w; ++x) {
@@ -125,11 +120,9 @@ QImage MainWindow::gaussianBlur(const QImage& img, float sigma, int threads)
         }
     };
 
-    // ----- Több szál -----
     QList<QFuture<void>> tasks;
     int rowsPerThread = h / threads;
 
-    // HORIZONTAL + időmérés
     for (int t = 0; t < threads; t++) {
         int y1 = t * rowsPerThread;
         int y2 = (t == threads - 1) ? h : y1 + rowsPerThread;
@@ -147,7 +140,6 @@ QImage MainWindow::gaussianBlur(const QImage& img, float sigma, int threads)
     for (auto &f : tasks) f.waitForFinished();
     tasks.clear();
 
-    // VERTICAL + időmérés
     for (int t = 0; t < threads; t++) {
         int y1 = t * rowsPerThread;
         int y2 = (t == threads - 1) ? h : y1 + rowsPerThread;
@@ -164,7 +156,6 @@ QImage MainWindow::gaussianBlur(const QImage& img, float sigma, int threads)
     }
     for (auto &f : tasks) f.waitForFinished();
 
-    // KIÍRÁS KONZOLRA (látod a thread időket)
     for (int t = 0; t < threads; t++) {
         qDebug() << "Thread" << t << "time:" << threadTimes[t] << "ms";
     }
@@ -172,4 +163,5 @@ QImage MainWindow::gaussianBlur(const QImage& img, float sigma, int threads)
     QImage result(out.data(), w, h, QImage::Format_RGBA8888);
     return result.copy();
 }
+
 
